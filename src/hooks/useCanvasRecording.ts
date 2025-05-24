@@ -73,33 +73,10 @@ export const useCanvasRecording = (
 
     const ffmpeg = new FFmpeg();
 
-    // ログイベントで詳細な進行状況を監視
+    // シンプルなログ監視（デバッグ用）
     ffmpeg.on('log', ({ message }) => {
-      // time情報から進行状況を推定
-      const timeMatch = message.match(/time=(\d+):(\d+):(\d+\.\d+)/);
-
-      if (timeMatch) {
-        const hours = parseInt(timeMatch[1]);
-        const minutes = parseInt(timeMatch[2]);
-        const seconds = parseFloat(timeMatch[3]);
-        const currentTime = hours * 3600 + minutes * 60 + seconds;
-
-        // 録画時間の推定（最低でも10秒、最大60秒と仮定）
-        const estimatedDuration = Math.max(10, Math.min(60, currentTime + 10));
-        const progressPercent = Math.min(95, Math.round((currentTime / estimatedDuration) * 100));
-
-        safeSetState(setConversionProgress, progressPercent);
-        safeSetState(setConversionStatus, `エンコード中... ${progressPercent}%`);
-      }
-    });
-
-    // プログレスの監視（修正版）
-    ffmpeg.on('progress', ({ progress }) => {
-      // 進行度を0-100%の範囲に制限
-      const progressPercent = Math.max(0, Math.min(100, Math.round(progress * 100)));
-      if (progressPercent > 0) {
-        safeSetState(setConversionProgress, progressPercent);
-        safeSetState(setConversionStatus, `エンコード中... ${progressPercent}%`);
+      if (message.includes('time=')) {
+        console.log(`🎬 FFmpeg: ${message.substring(0, 100)}...`);
       }
     });
 
@@ -123,31 +100,41 @@ export const useCanvasRecording = (
     safeSetState(setConversionProgress, 0);
     safeSetState(setConversionStatus, '変換準備中...');
 
+    // 進行状況の管理用
+    let currentProgress = 0;
+    let progressInterval: number | null = null;
+
+    const updateProgress = (newProgress: number, status: string) => {
+      // 常に増加するように制限
+      const roundedProgress = Math.round(Math.max(currentProgress, newProgress));
+      if (roundedProgress > currentProgress) {
+        currentProgress = roundedProgress;
+        safeSetState(setConversionProgress, currentProgress);
+        safeSetState(setConversionStatus, status);
+        console.log(`🔄 進行状況: ${currentProgress}% - ${status}`);
+      }
+    };
+
     try {
       const ffmpeg = await initFFmpeg();
 
       console.log(`📊 変換開始 - サイズ: ${(webmBlob.size / 1024 / 1024).toFixed(2)}MB`);
 
       // 5%: ファイル読み込み開始
-      safeSetState(setConversionProgress, 5);
-      safeSetState(setConversionStatus, '入力ファイル読み込み中...');
-      console.log('🔄 進行状況: 5% - ファイル読み込み開始');
+      updateProgress(5, '入力ファイル読み込み中...');
 
       await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
 
       // 15%: ファイル読み込み完了、エンコード開始
-      safeSetState(setConversionProgress, 15);
-      safeSetState(setConversionStatus, 'MP4エンコード実行中...');
-      console.log('🔄 進行状況: 15% - エンコード開始');
+      updateProgress(15, 'MP4エンコード実行中...');
 
-      // エンコード中の進行状況を定期的に更新
-      const progressInterval = setInterval(() => {
-        safeSetState(setConversionProgress, (prev) => {
-          const newProgress = Math.min(85, prev + Math.random() * 5 + 2);
-          console.log(`🔄 進行状況: ${Math.round(newProgress)}% - エンコード中...`);
-          return newProgress;
-        });
-      }, 1000);
+      // エンコード中の進行状況を緩やかに更新
+      progressInterval = setInterval(() => {
+        if (currentProgress < 85) {
+          const increment = Math.random() * 3 + 1; // 1-4%の増分
+          updateProgress(currentProgress + increment, 'MP4エンコード実行中...');
+        }
+      }, 1500); // 1.5秒間隔で更新
 
       // MP4に変換（高品質設定）
       await ffmpeg.exec([
@@ -165,20 +152,19 @@ export const useCanvasRecording = (
       ]);
 
       // インターバルを停止
-      clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
 
       // 90%: エンコード完了、ファイル読み取り開始
-      safeSetState(setConversionProgress, 90);
-      safeSetState(setConversionStatus, '出力ファイル読み取り中...');
-      console.log('🔄 進行状況: 90% - ファイル読み取り開始');
+      updateProgress(90, '出力ファイル読み取り中...');
 
       const data = await ffmpeg.readFile('output.mp4');
       const outputSize = data.length;
 
       // 95%: ファイル読み取り完了、クリーンアップ中
-      safeSetState(setConversionProgress, 95);
-      safeSetState(setConversionStatus, 'クリーンアップ中...');
-      console.log('🔄 進行状況: 95% - クリーンアップ中');
+      updateProgress(95, 'クリーンアップ中...');
 
       console.log(`✅ 変換完了 - 出力: ${(outputSize / 1024 / 1024).toFixed(2)}MB`);
 
@@ -187,9 +173,7 @@ export const useCanvasRecording = (
       await ffmpeg.deleteFile('output.mp4');
 
       // 100%: 完了
-      safeSetState(setConversionStatus, '変換完了');
-      safeSetState(setConversionProgress, 100);
-      console.log('🔄 進行状況: 100% - 変換完了');
+      updateProgress(100, '変換完了');
 
       return new Blob([data], { type: 'video/mp4' });
     } catch (error) {
@@ -197,6 +181,11 @@ export const useCanvasRecording = (
       safeSetState(setConversionStatus, '変換エラーが発生しました');
       throw error;
     } finally {
+      // インターバルのクリーンアップ
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+
       safeSetState(setIsConverting, false);
       // ステータスリセット
       setTimeout(() => {
