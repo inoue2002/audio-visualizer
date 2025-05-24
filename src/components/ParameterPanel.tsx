@@ -1,4 +1,5 @@
 import type { VisualParams } from '../types/visualizer';
+import { trackMusicEvent } from '../utils/analytics';
 
 interface ParameterPanelProps {
   visualParams: VisualParams;
@@ -7,12 +8,26 @@ interface ParameterPanelProps {
 }
 
 export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }: ParameterPanelProps) => {
+  const handleParameterChange = (paramName: keyof VisualParams, value: number | string) => {
+    setVisualParams((prev) => ({ ...prev, [paramName]: value }));
+
+    // Google Analytics: パラメーター変更をトラッキング
+    trackMusicEvent.parameterChanged(paramName, value);
+  };
+
+  const handleResetToDefault = () => {
+    resetToDefault();
+
+    // Google Analytics: デフォルトリセットをトラッキング
+    trackMusicEvent.parameterChanged('reset_to_default', 'all_parameters');
+  };
+
   return (
     <div style={{ marginBottom: '1rem', border: '1px solid #ccc', padding: '1rem', borderRadius: '5px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h3>ビジュアルパラメータ調整</h3>
         <button
-          onClick={resetToDefault}
+          onClick={handleResetToDefault}
           style={{
             padding: '0.5rem 1rem',
             backgroundColor: '#ff6b6b',
@@ -33,7 +48,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
             min="1"
             max="50"
             value={visualParams.threshold}
-            onChange={(e) => setVisualParams((prev) => ({ ...prev, threshold: Number(e.target.value) }))}
+            onChange={(e) => handleParameterChange('threshold', Number(e.target.value))}
             style={{ width: '100%' }}
           />
         </div>
@@ -44,7 +59,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
             min="50"
             max="400"
             value={visualParams.waveformHeight}
-            onChange={(e) => setVisualParams((prev) => ({ ...prev, waveformHeight: Number(e.target.value) }))}
+            onChange={(e) => handleParameterChange('waveformHeight', Number(e.target.value))}
             style={{ width: '100%' }}
           />
         </div>
@@ -55,7 +70,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
             min="50"
             max="500"
             value={visualParams.targetBars}
-            onChange={(e) => setVisualParams((prev) => ({ ...prev, targetBars: Number(e.target.value) }))}
+            onChange={(e) => handleParameterChange('targetBars', Number(e.target.value))}
             style={{ width: '100%' }}
           />
         </div>
@@ -67,7 +82,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
             max="1"
             step="0.1"
             value={visualParams.gapRatio}
-            onChange={(e) => setVisualParams((prev) => ({ ...prev, gapRatio: Number(e.target.value) }))}
+            onChange={(e) => handleParameterChange('gapRatio', Number(e.target.value))}
             style={{ width: '100%' }}
           />
         </div>
@@ -79,7 +94,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
             max="2"
             step="0.1"
             value={visualParams.emphasisPower}
-            onChange={(e) => setVisualParams((prev) => ({ ...prev, emphasisPower: Number(e.target.value) }))}
+            onChange={(e) => handleParameterChange('emphasisPower', Number(e.target.value))}
             style={{ width: '100%' }}
           />
         </div>
@@ -91,7 +106,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
             max="1"
             step="0.1"
             value={visualParams.heightRatio}
-            onChange={(e) => setVisualParams((prev) => ({ ...prev, heightRatio: Number(e.target.value) }))}
+            onChange={(e) => handleParameterChange('heightRatio', Number(e.target.value))}
             style={{ width: '100%' }}
           />
         </div>
@@ -99,9 +114,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
           <label>色モード</label>
           <select
             value={visualParams.colorMode}
-            onChange={(e) =>
-              setVisualParams((prev) => ({ ...prev, colorMode: e.target.value as 'rainbow' | 'single' }))
-            }
+            onChange={(e) => handleParameterChange('colorMode', e.target.value as 'rainbow' | 'single')}
           >
             <option value="rainbow">虹色</option>
             <option value="single">単色</option>
@@ -113,7 +126,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
             <input
               type="color"
               value={visualParams.singleColor}
-              onChange={(e) => setVisualParams((prev) => ({ ...prev, singleColor: e.target.value }))}
+              onChange={(e) => handleParameterChange('singleColor', e.target.value)}
             />
           </div>
         )}
@@ -121,12 +134,7 @@ export const ParameterPanel = ({ visualParams, setVisualParams, resetToDefault }
           <label>波形の表示位置</label>
           <select
             value={visualParams.waveformPosition}
-            onChange={(e) =>
-              setVisualParams((prev) => ({
-                ...prev,
-                waveformPosition: e.target.value as 'upper' | 'center' | 'lower',
-              }))
-            }
+            onChange={(e) => handleParameterChange('waveformPosition', e.target.value as 'upper' | 'center' | 'lower')}
           >
             <option value="upper">上部</option>
             <option value="center">中央</option>

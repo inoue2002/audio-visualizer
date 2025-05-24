@@ -10,6 +10,7 @@ import { useCanvasRecording } from './hooks/useCanvasRecording';
 import { useRealtimeWaveform } from './hooks/useRealtimeWaveform';
 import { useVisualParams } from './hooks/useVisualParams';
 import type { ActiveRange } from './types/visualizer';
+import { trackPageView } from './utils/analytics';
 import { generateMockFrequencyData } from './utils/mockData';
 import { drawExpandedWaveform } from './utils/visualizer';
 
@@ -152,6 +153,11 @@ function App() {
       cancelAnimationFrame(animationFrameId);
     };
   }, [frequencyData, isPlaying, activeRange, visualParams]);
+
+  // Google Analytics - ページビュー追跡
+  useEffect(() => {
+    trackPageView('Audio Visualizer - メインページ');
+  }, []);
 
   const handlePlayAndRecordClick = async () => {
     if (!audioFile) {

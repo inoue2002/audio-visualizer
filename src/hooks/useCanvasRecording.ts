@@ -2,6 +2,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 import type { RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { trackMusicEvent } from '../utils/analytics';
 
 export interface UseCanvasRecordingOptions {
   frameRate?: number;
@@ -285,9 +286,17 @@ export const useCanvasRecording = (
 
       mediaRecorder.start();
       safeSetState(setIsRecording, true);
+
+      // Google Analytics: 録画開始をトラッキング
+      trackMusicEvent.recordingStarted(!!audioFile);
+
       console.log('🎬 録画開始');
     } catch (error) {
       console.error('❌ 録画開始失敗:', error);
+
+      // Google Analytics: エラーをトラッキング
+      trackMusicEvent.errorOccurred('recording_start_failed', error instanceof Error ? error.message : 'unknown');
+
       throw error;
     }
   };
@@ -296,6 +305,8 @@ export const useCanvasRecording = (
     if (!mediaRecorderRef.current || !isRecording) return;
 
     console.log('🛑 録画停止');
+    const recordingStartTime = Date.now();
+
     mediaRecorderRef.current.stop();
 
     mediaRecorderRef.current.onstop = async () => {
@@ -322,9 +333,17 @@ export const useCanvasRecording = (
         a.click();
         URL.revokeObjectURL(url);
 
+        // Google Analytics: 録画完了をトラッキング
+        const duration = Math.round((Date.now() - recordingStartTime) / 1000);
+        trackMusicEvent.recordingCompleted(duration, !!audioFile);
+
         console.log(`💾 ${extension.toUpperCase()}ダウンロード完了`);
       } catch (error) {
         console.error('❌ 変換/ダウンロードエラー:', error);
+
+        // Google Analytics: エラーをトラッキング
+        trackMusicEvent.errorOccurred('conversion_failed', error instanceof Error ? error.message : 'unknown');
+
         // エラー時はWebMでダウンロード
         const url = URL.createObjectURL(webmBlob);
         const a = document.createElement('a');

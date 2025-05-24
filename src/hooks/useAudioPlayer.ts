@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { trackMusicEvent } from '../utils/analytics';
 
 export interface UseAudioPlayerReturn {
   audioFile: File | null;
@@ -37,6 +38,9 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       setIsPlaying(false);
       setCurrentTime(0);
       setDuration(0);
+
+      // Google Analytics: ファイル選択をトラッキング
+      trackMusicEvent.fileSelected(file.name, file.size);
 
       if (audioRef.current) {
         audioRef.current.pause();
@@ -88,6 +92,9 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     if (isPlaying) {
       audioRef.current.pause();
     } else {
+      // Google Analytics: 再生開始をトラッキング
+      trackMusicEvent.playStarted(audioFile.name);
+
       audioRef.current.play().catch((error) => {
         console.error('音声再生に失敗しました:', error);
         setIsPlaying(false);
