@@ -50,7 +50,15 @@ export const useCanvasRecording = (
   }, []);
 
   // 安全な状態更新関数（簡略化）
-  const safeSetState = <T>(setter: (value: T) => void, value: T) => {
+  const safeSetState = <T>(setter: (value: T | ((prev: T) => T)) => void, value: T | ((prev: T) => T)) => {
+    // デバッグ用：状態更新をログに出力
+    if (setter === setConversionProgress) {
+      const progressValue = typeof value === 'function' ? 'function' : value;
+      console.log(`🔧 状態更新: ConversionProgress = ${progressValue}`);
+    } else if (setter === setConversionStatus) {
+      console.log(`🔧 状態更新: ConversionStatus = ${value}`);
+    }
+
     setter(value);
   };
 
@@ -123,12 +131,23 @@ export const useCanvasRecording = (
       // 5%: ファイル読み込み開始
       safeSetState(setConversionProgress, 5);
       safeSetState(setConversionStatus, '入力ファイル読み込み中...');
+      console.log('🔄 進行状況: 5% - ファイル読み込み開始');
 
       await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
 
       // 15%: ファイル読み込み完了、エンコード開始
       safeSetState(setConversionProgress, 15);
       safeSetState(setConversionStatus, 'MP4エンコード実行中...');
+      console.log('🔄 進行状況: 15% - エンコード開始');
+
+      // エンコード中の進行状況を定期的に更新
+      const progressInterval = setInterval(() => {
+        safeSetState(setConversionProgress, (prev) => {
+          const newProgress = Math.min(85, prev + Math.random() * 5 + 2);
+          console.log(`🔄 進行状況: ${Math.round(newProgress)}% - エンコード中...`);
+          return newProgress;
+        });
+      }, 1000);
 
       // MP4に変換（高品質設定）
       await ffmpeg.exec([
@@ -145,9 +164,13 @@ export const useCanvasRecording = (
         'output.mp4',
       ]);
 
+      // インターバルを停止
+      clearInterval(progressInterval);
+
       // 90%: エンコード完了、ファイル読み取り開始
       safeSetState(setConversionProgress, 90);
       safeSetState(setConversionStatus, '出力ファイル読み取り中...');
+      console.log('🔄 進行状況: 90% - ファイル読み取り開始');
 
       const data = await ffmpeg.readFile('output.mp4');
       const outputSize = data.length;
@@ -155,6 +178,7 @@ export const useCanvasRecording = (
       // 95%: ファイル読み取り完了、クリーンアップ中
       safeSetState(setConversionProgress, 95);
       safeSetState(setConversionStatus, 'クリーンアップ中...');
+      console.log('🔄 進行状況: 95% - クリーンアップ中');
 
       console.log(`✅ 変換完了 - 出力: ${(outputSize / 1024 / 1024).toFixed(2)}MB`);
 
@@ -165,6 +189,7 @@ export const useCanvasRecording = (
       // 100%: 完了
       safeSetState(setConversionStatus, '変換完了');
       safeSetState(setConversionProgress, 100);
+      console.log('🔄 進行状況: 100% - 変換完了');
 
       return new Blob([data], { type: 'video/mp4' });
     } catch (error) {
