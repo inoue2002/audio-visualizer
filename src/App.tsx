@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import './App.css';
+import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useCanvasRecording } from './hooks/useCanvasRecording';
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
     frameRate: 30,
     fileName: 'canvas-recording',
   });
+  const { audioFile, isPlaying, handleFileChange, handlePlayClick } = useAudioPlayer();
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -67,6 +69,17 @@ function App() {
   return (
     <>
       <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <input type="file" accept="audio/*" onChange={handleFileChange} style={{ marginRight: '1rem' }} />
+          {audioFile && (
+            <>
+              <span style={{ marginRight: '1rem' }}>
+                ファイル名: {audioFile.name} ({(audioFile.size / 1024 / 1024).toFixed(2)} MB)
+              </span>
+              <button onClick={handlePlayClick}>{isPlaying ? '一時停止' : '再生'}</button>
+            </>
+          )}
+        </div>
         {!isRecording ? (
           <button onClick={handleRecordClick}>録画開始</button>
         ) : (
