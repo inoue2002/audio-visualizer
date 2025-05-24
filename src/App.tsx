@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
+import { ConversionProgress } from './components/ConversionProgress';
+import { Footer } from './components/Footer';
+import { Header } from './components/Header';
+import { HelpSection } from './components/HelpSection';
+import { ParameterPanel } from './components/ParameterPanel';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useCanvasRecording } from './hooks/useCanvasRecording';
 import { useRealtimeWaveform } from './hooks/useRealtimeWaveform';
+import { useVisualParams } from './hooks/useVisualParams';
+import type { ActiveRange } from './types/visualizer';
+import { generateMockFrequencyData } from './utils/mockData';
+import { drawExpandedWaveform } from './utils/visualizer';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -39,84 +48,14 @@ function App() {
     error: realtimeError,
   } = useRealtimeWaveform();
 
+  // パラメータ管理
+  const { visualParams, setVisualParams, resetToDefault } = useVisualParams();
+
   // アクティブ範囲の追跡
-  const [activeRange, setActiveRange] = useState<{ start: number; end: number }>({ start: 0, end: 127 });
-
-  // デフォルトのビジュアルパラメータ
-  const defaultVisualParams = {
-    threshold: 24, // 動きの閾値
-    minWidthRatio: 0.3, // 最小幅の係数
-    waveformHeight: 313, // 波形の高さ
-    targetBars: 211, // バーの数
-    gapRatio: 1.0, // バー間隔の係数
-    emphasisPower: 1.4, // 強調の係数
-    minValue: 0.05, // 最小値
-    heightRatio: 1.0, // 高さの係数
-    colorMode: 'single' as 'rainbow' | 'single', // 色モード：虹色 or 単色
-    singleColor: '#ffffff', // 単色の場合の色
-    waveformPosition: 'center' as 'upper' | 'center' | 'lower', // 波形の表示位置
-  };
-
-  // パラメータの型定義
-  type VisualParams = typeof defaultVisualParams;
-
-  // ローカルストレージのキー
-  const STORAGE_KEY = 'audio-visualizer-params';
-
-  // ローカルストレージから設定を読み込む関数
-  const loadParamsFromStorage = (): VisualParams => {
-    try {
-      const savedParams = localStorage.getItem(STORAGE_KEY);
-      if (savedParams) {
-        const parsed = JSON.parse(savedParams);
-        // デフォルト値とマージして、新しいプロパティがあっても対応
-        return { ...defaultVisualParams, ...parsed };
-      }
-    } catch (error) {
-      console.error('設定の読み込みエラー:', error);
-    }
-    return defaultVisualParams;
-  };
-
-  // 調整可能なパラメータ
-  const [visualParams, setVisualParams] = useState<VisualParams>(loadParamsFromStorage);
+  const [activeRange, setActiveRange] = useState<ActiveRange>({ start: 0, end: 127 });
 
   // パラメーター調整画面の展開状態
   const [showParameterPanel, setShowParameterPanel] = useState(false);
-
-  // アコーディオンの各セクション状態
-  const [helpSections, setHelpSections] = useState({
-    basics: false,
-    settings: false,
-    troubleshoot: false,
-  });
-
-  // パラメータを保存する関数
-  const saveParamsToStorage = (params: VisualParams) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
-    } catch (error) {
-      console.error('設定の保存エラー:', error);
-    }
-  };
-
-  // デフォルト設定に戻す関数
-  const resetToDefault = () => {
-    setVisualParams(defaultVisualParams);
-  };
-
-  // アコーディオンセクションの切り替え関数
-  const toggleHelpSection = (section: keyof typeof helpSections) => {
-    setHelpSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
-
-  // パラメータが変更されたときに自動保存
-  useEffect(() => {
-    saveParamsToStorage(visualParams);
-  }, [visualParams]);
 
   // 音楽終了時のコールバック設定
   useEffect(() => {
@@ -131,11 +70,10 @@ function App() {
   // アクティブな周波数範囲を検出
   useEffect(() => {
     if (frequencyData && isPlaying) {
-      const threshold = visualParams.threshold; // 動的に変更可能
+      const threshold = visualParams.threshold;
       let firstActive = -1;
       let lastActive = -1;
 
-      // 前から順に閾値を超える部分を探す
       for (let i = 0; i < frequencyData.length; i++) {
         if (frequencyData[i] > threshold) {
           if (firstActive === -1) firstActive = i;
@@ -143,14 +81,11 @@ function App() {
         }
       }
 
-      // アクティブ範囲が見つかった場合のみ更新
       if (firstActive !== -1 && lastActive !== -1) {
-        // 範囲を少し広げて余裕を持たせる
         const margin = Math.floor((lastActive - firstActive) * 0.1);
         const start = Math.max(0, firstActive - margin);
         const end = Math.min(frequencyData.length - 1, lastActive + margin);
 
-        // 最小幅を確保（画面全体を使うため）
         const minWidth = Math.floor(frequencyData.length * visualParams.minWidthRatio);
         if (end - start < minWidth) {
           const center = Math.floor((start + end) / 2);
@@ -201,10 +136,8 @@ function App() {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       if (frequencyData && isPlaying) {
-        // 実際の音声データを使用
         drawExpandedWaveform(ctx, frequencyData, canvas.width, canvas.height, activeRange, visualParams);
       } else {
-        // モックデータを生成して表示
         const mockData = generateMockFrequencyData(startTime);
         const mockRange = { start: 0, end: mockData.length - 1 };
         drawExpandedWaveform(ctx, mockData, canvas.width, canvas.height, mockRange, visualParams);
@@ -219,162 +152,6 @@ function App() {
       cancelAnimationFrame(animationFrameId);
     };
   }, [frequencyData, isPlaying, activeRange, visualParams]);
-
-  // 拡張された波形を描画
-  const drawExpandedWaveform = (
-    ctx: CanvasRenderingContext2D,
-    data: Uint8Array,
-    canvasWidth: number,
-    canvasHeight: number,
-    range: { start: number; end: number },
-    params: {
-      threshold: number;
-      minWidthRatio: number;
-      waveformHeight: number;
-      targetBars: number;
-      gapRatio: number;
-      emphasisPower: number;
-      minValue: number;
-      heightRatio: number;
-      colorMode: 'rainbow' | 'single';
-      singleColor: string;
-      waveformPosition: 'upper' | 'center' | 'lower';
-    }
-  ) => {
-    const waveformWidth = canvasWidth * 0.99;
-    const waveformHeight = params.waveformHeight;
-    const targetBars = params.targetBars;
-
-    const startX = (canvasWidth - waveformWidth) / 2;
-
-    // 波形位置に応じてstartYとcenterYを計算
-    let startY: number;
-    let centerY: number;
-
-    switch (params.waveformPosition) {
-      case 'upper':
-        startY = canvasHeight * 0.15; // 上部15%の位置
-        centerY = startY + waveformHeight / 2;
-        break;
-      case 'lower':
-        startY = canvasHeight * 0.85 - waveformHeight; // 下部15%の位置（波形の高さを考慮）
-        centerY = startY + waveformHeight / 2;
-        break;
-      case 'center':
-      default:
-        startY = (canvasHeight - waveformHeight) / 2;
-        centerY = startY + waveformHeight / 2;
-        break;
-    }
-
-    // 中央線
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(startX, centerY);
-    ctx.lineTo(startX + waveformWidth, centerY);
-    ctx.stroke();
-
-    // アクティブ範囲のデータを抽出
-    const activeData = Array.from(data).slice(range.start, range.end + 1);
-
-    // バー幅を計算
-    const barWidth = Math.max(2, Math.floor(waveformWidth / targetBars));
-    const gap = Math.max(1, Math.floor(barWidth * params.gapRatio));
-
-    // 補間してバー数を増やす
-    const interpolatedData = interpolateData(activeData, targetBars);
-
-    // アクティブデータの最大値を取得してスケーリング
-    const maxInActiveData = Math.max(...interpolatedData);
-    const minInActiveData = Math.min(...interpolatedData);
-    const dataRange = Math.max(maxInActiveData - minInActiveData, 1);
-
-    for (let i = 0; i < targetBars && i < interpolatedData.length; i++) {
-      const value = interpolatedData[i];
-
-      // 適度な正規化
-      let normalizedValue = (value - minInActiveData) / dataRange;
-
-      // 軽い強調に変更（0.6 → 0.8で自然に）
-      normalizedValue = Math.pow(normalizedValue, params.emphasisPower);
-
-      // 最小値を少し下げる（0.1 → 0.05）
-      normalizedValue = Math.max(params.minValue, normalizedValue);
-
-      // 適度な高さ計算（0.8 → 0.6に調整）
-      const halfBarHeight = Math.max(2, (normalizedValue * waveformHeight * params.heightRatio) / 2);
-
-      const x = startX + i * (barWidth + gap);
-
-      // 適度なカラーグラデーション
-      let color: string;
-
-      if (params.colorMode === 'rainbow') {
-        // 虹色の場合はHSLで色相を変化
-        const hue = (i / targetBars) * 360;
-        const saturation = 80 + normalizedValue * 20;
-        const lightness = 30 + normalizedValue * 50;
-        color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-      } else {
-        // 単色の場合は単色を使用
-        color = params.singleColor;
-      }
-
-      ctx.fillStyle = color;
-
-      // 通常の描画のみ（グロー効果を削除）
-      ctx.fillRect(x, centerY - halfBarHeight, barWidth, halfBarHeight);
-      ctx.fillRect(x, centerY, barWidth, halfBarHeight);
-    }
-  };
-
-  // データを補間して滑らかに拡張
-  const interpolateData = (sourceData: number[], targetLength: number): number[] => {
-    if (sourceData.length === 0) return [];
-    if (sourceData.length >= targetLength) return sourceData.slice(0, targetLength);
-
-    const result: number[] = [];
-    const ratio = (sourceData.length - 1) / (targetLength - 1);
-
-    for (let i = 0; i < targetLength; i++) {
-      const srcIndex = i * ratio;
-      const srcIndexFloor = Math.floor(srcIndex);
-      const srcIndexCeil = Math.min(srcIndexFloor + 1, sourceData.length - 1);
-      const fraction = srcIndex - srcIndexFloor;
-
-      // 線形補間
-      const interpolatedValue = sourceData[srcIndexFloor] * (1 - fraction) + sourceData[srcIndexCeil] * fraction;
-      result.push(interpolatedValue);
-    }
-
-    return result;
-  };
-
-  // モックの周波数データを生成
-  const generateMockFrequencyData = (startTime: number): Uint8Array => {
-    const time = (Date.now() - startTime) / 1000; // 秒単位の経過時間
-    const dataLength = 128; // 標準的な周波数データの長さ
-    const mockData = new Uint8Array(dataLength);
-
-    for (let i = 0; i < dataLength; i++) {
-      // 複数の波を組み合わせて自然な周波数スペクトラムを模擬
-      const freq1 = Math.sin(time * 2 + i * 0.1) * 50;
-      const freq2 = Math.sin(time * 3 + i * 0.05) * 30;
-      const freq3 = Math.sin(time * 1.5 + i * 0.15) * 20;
-
-      // 低周波数ほど振幅が大きい傾向を模擬
-      const baseAmplitude = Math.max(0, 100 - i * 0.8);
-
-      // ランダムなノイズを追加
-      const noise = (Math.random() - 0.5) * 10;
-
-      const value = baseAmplitude + freq1 + freq2 + freq3 + noise;
-      mockData[i] = Math.max(0, Math.min(255, value));
-    }
-
-    return mockData;
-  };
 
   const handlePlayAndRecordClick = async () => {
     if (!audioFile) {
@@ -395,51 +172,14 @@ function App() {
   };
 
   const handleResetClick = () => {
-    // 解析を停止してリセット
     resetAnalysis();
-    // オーディオプレイヤーをリセット
     resetAudio();
-    // アクティブ範囲もリセット
     setActiveRange({ start: 0, end: 127 });
   };
 
   return (
     <>
-      {/* ヘッダー */}
-      <header
-        style={{
-          padding: '1.5rem 2rem',
-          backgroundColor: '#f8f9fa',
-          borderBottom: '2px solid #e9ecef',
-          marginBottom: '2rem',
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '2rem',
-            fontWeight: 'bold',
-            color: '#2c3e50',
-            textAlign: 'center',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          Audio Visualizer
-        </h1>
-        <p
-          style={{
-            margin: '0.5rem 0 0 0',
-            fontSize: '1rem',
-            color: '#6c757d',
-            textAlign: 'center',
-          }}
-        >
-          音楽に合わせたリアルタイムビジュアライザー
-        </p>
-      </header>
+      <Header />
 
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ marginBottom: '1rem' }}>
@@ -472,60 +212,13 @@ function App() {
             オーディオリセット
           </button>
         )}
-        {isConverting && (
-          <div
-            style={{
-              marginTop: '0.5rem',
-              padding: '1rem',
-              backgroundColor: '#fff3cd',
-              border: '1px solid #ffeeba',
-              borderRadius: '8px',
-            }}
-          >
-            <div style={{ fontSize: '1rem', color: '#856404', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              🔄 {conversionStatus || 'MP4変換中...'}
-            </div>
-            <div style={{ marginBottom: '0.5rem' }}>
-              <div
-                style={{
-                  width: '100%',
-                  height: '20px',
-                  backgroundColor: '#e9ecef',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    width: `${conversionProgress}%`,
-                    height: '100%',
-                    backgroundColor:
-                      conversionProgress >= 90 ? '#28a745' : conversionProgress >= 50 ? '#ffc107' : '#17a2b8',
-                    transition: 'width 0.3s ease, background-color 0.3s ease',
-                    borderRadius: '10px',
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  fontSize: '0.8rem',
-                  color: '#6c757d',
-                  marginTop: '0.25rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <span>進行度: {conversionProgress}%</span>
-                <span>
-                  {conversionProgress < 15 ? '準備中...' : conversionProgress < 90 ? 'エンコード中...' : '仕上げ中...'}
-                </span>
-              </div>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: '#856404' }}>
-              💡 初回変換時はFFmpeg.wasmのダウンロードで時間がかかる場合があります
-            </div>
-          </div>
-        )}
+
+        <ConversionProgress
+          isConverting={isConverting}
+          conversionProgress={conversionProgress}
+          conversionStatus={conversionStatus}
+        />
+
         <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
           録画形式: {supportedFormat}
           {audioFile ? ' (音声付き)' : ' (映像のみ)'}
@@ -550,311 +243,10 @@ function App() {
         </button>
       </div>
 
-      {/* 使い方セクション - 常に表示 */}
-      <div
-        style={{
-          marginBottom: '1rem',
-          border: '1px solid #ddd',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        }}
-      >
-        <h3
-          style={{
-            margin: '0',
-            padding: '1rem 1.5rem',
-            color: '#2c3e50',
-            fontSize: '1.3rem',
-            fontWeight: 'bold',
-            borderBottom: '1px solid #ddd',
-          }}
-        >
-          📖 使い方
-        </h3>
+      <HelpSection />
 
-        {/* アコーディオンセクション1: 基本的な使い方 */}
-        <div style={{ borderBottom: '1px solid #eee' }}>
-          <button
-            onClick={() => toggleHelpSection('basics')}
-            style={{
-              width: '100%',
-              padding: '1rem 1.5rem',
-              backgroundColor: 'transparent',
-              border: 'none',
-              textAlign: 'left',
-              cursor: 'pointer',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              color: '#343a40',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            🎵 基本的な使い方
-            <span
-              style={{
-                transform: helpSections.basics ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s',
-              }}
-            >
-              ▶
-            </span>
-          </button>
-          {helpSections.basics && (
-            <div style={{ padding: '0 1.5rem 1rem 1.5rem', fontSize: '0.95rem', lineHeight: '1.6', color: '#495057' }}>
-              <ol style={{ margin: '0', paddingLeft: '1.5rem' }}>
-                <li>
-                  <strong>音楽ファイルを選択</strong> -
-                  「ファイルを選択」ボタンからMP3、WAV等の音楽ファイルをアップロード
-                </li>
-                <li>
-                  <strong>再生&録画開始</strong> - ボタンをクリックすると音楽再生とビジュアライザーの録画が同時に開始
-                </li>
-                <li>
-                  <strong>自動完了</strong> - 音楽が終わると自動的に録画が停止され、動画ファイルがダウンロード
-                </li>
-              </ol>
-            </div>
-          )}
-        </div>
-
-        {/* アコーディオンセクション2: 設定とカスタマイズ */}
-        <div style={{ borderBottom: '1px solid #eee' }}>
-          <button
-            onClick={() => toggleHelpSection('settings')}
-            style={{
-              width: '100%',
-              padding: '1rem 1.5rem',
-              backgroundColor: 'transparent',
-              border: 'none',
-              textAlign: 'left',
-              cursor: 'pointer',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              color: '#343a40',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            ⚙️ 設定とカスタマイズ
-            <span
-              style={{
-                transform: helpSections.settings ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s',
-              }}
-            >
-              ▶
-            </span>
-          </button>
-          {helpSections.settings && (
-            <div style={{ padding: '0 1.5rem 1rem 1.5rem', fontSize: '0.95rem', lineHeight: '1.6', color: '#495057' }}>
-              <ul style={{ margin: '0', paddingLeft: '1.5rem' }}>
-                <li>
-                  <strong>パラメーター調整</strong> - ⚙️ボタンで詳細設定を開き、波形の高さ、バーの数、色などを調整
-                </li>
-                <li>
-                  <strong>色の選択</strong> - 虹色または単色から選択可能
-                </li>
-                <li>
-                  <strong>設定の保存</strong> - 調整した設定は自動的に保存され、次回起動時に復元
-                </li>
-                <li>
-                  <strong>デフォルトに戻す</strong> - 設定パネル内のボタンで初期設定に戻せます
-                </li>
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* アコーディオンセクション3: トラブルシューティング */}
-        <div>
-          <button
-            onClick={() => toggleHelpSection('troubleshoot')}
-            style={{
-              width: '100%',
-              padding: '1rem 1.5rem',
-              backgroundColor: 'transparent',
-              border: 'none',
-              textAlign: 'left',
-              cursor: 'pointer',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              color: '#343a40',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            🔧 トラブルシューティング
-            <span
-              style={{
-                transform: helpSections.troubleshoot ? 'rotate(90deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s',
-              }}
-            >
-              ▶
-            </span>
-          </button>
-          {helpSections.troubleshoot && (
-            <div style={{ padding: '0 1.5rem 1rem 1.5rem', fontSize: '0.95rem', lineHeight: '1.6', color: '#495057' }}>
-              <ul style={{ margin: '0 0 1rem 0', paddingLeft: '1.5rem' }}>
-                <li>
-                  <strong>音が出ない</strong> - ブラウザの音量設定を確認してください
-                </li>
-                <li>
-                  <strong>再生エラー</strong> - 「オーディオリセット」ボタンでリセットしてから再試行
-                </li>
-                <li>
-                  <strong>録画できない</strong> - ブラウザが最新版かご確認ください（Chrome、Firefox推奨）
-                </li>
-              </ul>
-              <div
-                style={{
-                  padding: '0.75rem',
-                  backgroundColor: '#e3f2fd',
-                  borderRadius: '4px',
-                  border: '1px solid #bbdefb',
-                }}
-              >
-                <strong>💡 ヒント:</strong> モックモード（音楽未選択時）でパラメーターの効果をプレビューできます
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* パラメータ調整UI - 条件付き表示 */}
       {showParameterPanel && (
-        <div style={{ marginBottom: '1rem', border: '1px solid #ccc', padding: '1rem', borderRadius: '5px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3>ビジュアルパラメータ調整</h3>
-            <button
-              onClick={resetToDefault}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#ff6b6b',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              }}
-            >
-              デフォルトに戻す
-            </button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '10px' }}>
-            <div>
-              <label>動きの閾値: {visualParams.threshold}</label>
-              <input
-                type="range"
-                min="1"
-                max="50"
-                value={visualParams.threshold}
-                onChange={(e) => setVisualParams((prev) => ({ ...prev, threshold: Number(e.target.value) }))}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label>波形の高さ: {visualParams.waveformHeight}</label>
-              <input
-                type="range"
-                min="50"
-                max="400"
-                value={visualParams.waveformHeight}
-                onChange={(e) => setVisualParams((prev) => ({ ...prev, waveformHeight: Number(e.target.value) }))}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label>バーの数: {visualParams.targetBars}</label>
-              <input
-                type="range"
-                min="50"
-                max="500"
-                value={visualParams.targetBars}
-                onChange={(e) => setVisualParams((prev) => ({ ...prev, targetBars: Number(e.target.value) }))}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label>バー間隔: {visualParams.gapRatio.toFixed(2)}</label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={visualParams.gapRatio}
-                onChange={(e) => setVisualParams((prev) => ({ ...prev, gapRatio: Number(e.target.value) }))}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label>強調係数: {visualParams.emphasisPower.toFixed(2)}</label>
-              <input
-                type="range"
-                min="0.1"
-                max="2"
-                step="0.1"
-                value={visualParams.emphasisPower}
-                onChange={(e) => setVisualParams((prev) => ({ ...prev, emphasisPower: Number(e.target.value) }))}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label>高さ係数: {visualParams.heightRatio.toFixed(2)}</label>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.1"
-                value={visualParams.heightRatio}
-                onChange={(e) => setVisualParams((prev) => ({ ...prev, heightRatio: Number(e.target.value) }))}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label>色モード</label>
-              <select
-                value={visualParams.colorMode}
-                onChange={(e) =>
-                  setVisualParams((prev) => ({ ...prev, colorMode: e.target.value as 'rainbow' | 'single' }))
-                }
-              >
-                <option value="rainbow">虹色</option>
-                <option value="single">単色</option>
-              </select>
-            </div>
-            {visualParams.colorMode === 'single' && (
-              <div>
-                <label>単色: {visualParams.singleColor}</label>
-                <input
-                  type="color"
-                  value={visualParams.singleColor}
-                  onChange={(e) => setVisualParams((prev) => ({ ...prev, singleColor: e.target.value }))}
-                />
-              </div>
-            )}
-            <div>
-              <label>波形の表示位置</label>
-              <select
-                value={visualParams.waveformPosition}
-                onChange={(e) =>
-                  setVisualParams((prev) => ({
-                    ...prev,
-                    waveformPosition: e.target.value as 'upper' | 'center' | 'lower',
-                  }))
-                }
-              >
-                <option value="upper">上部</option>
-                <option value="center">中央</option>
-                <option value="lower">下部</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <ParameterPanel visualParams={visualParams} setVisualParams={setVisualParams} resetToDefault={resetToDefault} />
       )}
 
       <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -867,19 +259,7 @@ function App() {
         />
       </div>
 
-      {/* フッター */}
-      <footer
-        style={{
-          marginTop: '2rem',
-          padding: '1rem',
-          textAlign: 'center',
-          borderTop: '1px solid #eee',
-          color: '#666',
-          fontSize: '0.9rem',
-        }}
-      >
-        Created by inoue2002
-      </footer>
+      <Footer />
     </>
   );
 }
