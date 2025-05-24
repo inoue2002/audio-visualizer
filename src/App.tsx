@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { AudioVisualizer } from 'react-audio-visualize';
 import './App.css';
+import { RealtimeWaveform } from './components/RealtimeWaveform';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useCanvasRecording } from './hooks/useCanvasRecording';
+import { useRealtimeWaveform } from './hooks/useRealtimeWaveform';
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -10,7 +11,19 @@ function App() {
     frameRate: 30,
     fileName: 'canvas-recording',
   });
-  const { audioFile, audioBlob, isPlaying, currentTime, handleFileChange, handlePlayClick } = useAudioPlayer();
+  const { audioFile, isPlaying, handleFileChange, handlePlayClick, getAudioElement } = useAudioPlayer();
+  const { frequencyData, isAnalyzing, startAnalysis, stopAnalysis, error: realtimeError } = useRealtimeWaveform();
+
+  // 再生状態が変化したときにリアルタイム解析を開始/停止
+  useEffect(() => {
+    const audioElement = getAudioElement();
+
+    if (isPlaying && audioElement && !isAnalyzing) {
+      startAnalysis(audioElement).catch(console.error);
+    } else if (!isPlaying && isAnalyzing) {
+      stopAnalysis();
+    }
+  }, [isPlaying, isAnalyzing, startAnalysis, stopAnalysis, getAudioElement]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -23,30 +36,11 @@ function App() {
     canvas.width = 1280;
     canvas.height = 720;
 
-    // ランダムな色を生成する関数
-    const getRandomColor = () => {
-      const r = Math.floor(Math.random() * 256);
-      const g = Math.floor(Math.random() * 256);
-      const b = Math.floor(Math.random() * 256);
-      return `rgb(${r}, ${g}, ${b})`;
-    };
-
-    let lastColorChange = Date.now();
-    let currentColor = getRandomColor();
-
     // アニメーションループ
     let animationFrameId: number;
     const animate = () => {
-      const now = Date.now();
-
-      // 0.5秒ごとに色を変更
-      if (now - lastColorChange >= 500) {
-        currentColor = getRandomColor();
-        lastColorChange = now;
-      }
-
-      // 背景を描画
-      ctx.fillStyle = currentColor;
+      // 背景を描画（グリーンバック）
+      ctx.fillStyle = '#00ff00';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       animationFrameId = requestAnimationFrame(animate);
@@ -81,6 +75,8 @@ function App() {
             </>
           )}
         </div>
+        {realtimeError && <div style={{ color: 'red', marginBottom: '1rem' }}>エラー: {realtimeError}</div>}
+        {isAnalyzing && <div style={{ color: 'green', marginBottom: '1rem' }}>リアルタイム解析中...</div>}
         {!isRecording ? (
           <button onClick={handleRecordClick}>録画開始</button>
         ) : (
@@ -95,7 +91,7 @@ function App() {
             aspectRatio: '16/9',
           }}
         />
-        {audioBlob && isPlaying && (
+        {frequencyData && isPlaying && (
           <div
             style={{
               position: 'absolute',
@@ -105,16 +101,14 @@ function App() {
               zIndex: 10,
             }}
           >
-            <AudioVisualizer
-              blob={audioBlob}
-              width={500}
-              height={100}
-              barWidth={3}
-              gap={1}
-              barColor={'rgba(255, 255, 255, 0.5)'}
-              barPlayedColor={'#00ff88'}
-              currentTime={currentTime}
-              backgroundColor="transparent"
+            <RealtimeWaveform
+              frequencyData={frequencyData}
+              width={600}
+              height={120}
+              barWidth={5}
+              gap={2}
+              style="bars"
+              backgroundColor="rgba(0, 0, 0, 0.7)"
             />
           </div>
         )}
