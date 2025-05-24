@@ -1,3 +1,7 @@
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+
 interface ConversionProgressProps {
   isConverting: boolean;
   conversionProgress: number;
@@ -8,56 +12,40 @@ export const ConversionProgress = ({ isConverting, conversionProgress, conversio
   if (!isConverting) return null;
 
   return (
-    <div
-      style={{
-        marginTop: '0.5rem',
-        padding: '1rem',
-        backgroundColor: '#fff3cd',
-        border: '1px solid #ffeeba',
-        borderRadius: '8px',
-      }}
-    >
-      <div style={{ fontSize: '1rem', color: '#856404', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-        🔄 {conversionStatus || 'MP4変換中...'}
-      </div>
-      <div style={{ marginBottom: '0.5rem' }}>
-        <div
-          style={{
-            width: '100%',
-            height: '20px',
-            backgroundColor: '#e9ecef',
-            borderRadius: '10px',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${conversionProgress}%`,
-              height: '100%',
-              backgroundColor: conversionProgress >= 90 ? '#28a745' : conversionProgress >= 50 ? '#ffc107' : '#17a2b8',
-              transition: 'width 0.3s ease, background-color 0.3s ease',
-              borderRadius: '10px',
-            }}
-          />
+    <Card className="mt-4">
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full" />
+            <div className="text-lg font-semibold text-blue-700">
+              🔄 {conversionStatus || 'MP4変換中...'}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Progress 
+              value={conversionProgress} 
+              className="w-full h-3"
+            />
+            <div className="flex justify-between items-center text-sm">
+              <span className="font-medium text-gray-700">
+                進行度: <span className="text-blue-600 font-bold">{conversionProgress}%</span>
+              </span>
+              <span className="text-gray-500">
+                {conversionProgress < 15 ? '🚀 準備中...' : 
+                 conversionProgress < 90 ? '⚡ エンコード中...' : 
+                 '✨ 仕上げ中...'}
+              </span>
+            </div>
+          </div>
+          
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertDescription className="text-blue-800">
+              💡 初回変換時はFFmpeg.wasmのダウンロードで時間がかかる場合があります
+            </AlertDescription>
+          </Alert>
         </div>
-        <div
-          style={{
-            fontSize: '0.8rem',
-            color: '#6c757d',
-            marginTop: '0.25rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span>進行度: {conversionProgress}%</span>
-          <span>
-            {conversionProgress < 15 ? '準備中...' : conversionProgress < 90 ? 'エンコード中...' : '仕上げ中...'}
-          </span>
-        </div>
-      </div>
-      <div style={{ fontSize: '0.8rem', color: '#856404' }}>
-        💡 初回変換時はFFmpeg.wasmのダウンロードで時間がかかる場合があります
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

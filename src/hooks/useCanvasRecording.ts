@@ -104,7 +104,7 @@ export const useCanvasRecording = (
 
     // 進行状況の管理用
     let currentProgress = 0;
-    let progressInterval: number | null = null;
+    let progressInterval: NodeJS.Timeout | null = null;
 
     const updateProgress = (newProgress: number, status: string) => {
       // 常に増加するように制限

@@ -1,14 +1,14 @@
 export const Header = () => {
   return (
-    <header
-      className="py-6 px-8 bg-gray-50 border-b-2 border-gray-200 mb-8"
-    >
-      <h1 className="m-0 text-3xl font-bold text-center bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
-        Audio Visualizer
-      </h1>
-      <p className="mt-2 text-base text-gray-500 text-center">
-        音楽に合わせたリアルタイムビジュアライザー
-      </p>
+    <header className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-slate-200 mb-8">
+      <div className="container mx-auto px-6 py-8">
+        <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
+          🎵 Audio Visualizer
+        </h1>
+        <p className="text-center text-lg text-slate-600 mt-3 font-medium">
+          音楽に合わせたリアルタイムビジュアライザー
+        </p>
+      </div>
     </header>
   );
 };
