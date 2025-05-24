@@ -8,8 +8,10 @@ export interface UseAudioPlayerReturn {
   duration: number;
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handlePlayClick: () => void;
+  playAudio: () => Promise<void>;
   resetAudio: () => void;
   getAudioElement: () => HTMLAudioElement | null;
+  setOnEndedCallback: (callback: () => void) => void;
 }
 
 export const useAudioPlayer = (): UseAudioPlayerReturn => {
@@ -20,6 +22,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
+  const onEndedCallbackRef = useRef<(() => void) | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -69,6 +72,10 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       audioRef.current.onended = () => {
         setIsPlaying(false);
         setCurrentTime(0);
+        // カスタムコールバックがあれば実行
+        if (onEndedCallbackRef.current) {
+          onEndedCallbackRef.current();
+        }
       };
 
       // エラーハンドリング
@@ -112,6 +119,59 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     return audioRef.current;
   };
 
+  const playAudio = async (): Promise<void> => {
+    if (!audioFile || isPlaying) return;
+
+    if (!audioRef.current) {
+      const audioUrl = URL.createObjectURL(audioFile);
+      audioUrlRef.current = audioUrl;
+      audioRef.current = new Audio(audioUrl);
+
+      // 音声のメタデータが読み込まれた時の処理
+      audioRef.current.onloadedmetadata = () => {
+        if (audioRef.current) {
+          setDuration(audioRef.current.duration);
+        }
+      };
+
+      // 再生時間の更新
+      audioRef.current.ontimeupdate = () => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+      };
+
+      // 音声が終了した時の処理
+      audioRef.current.onended = () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        // カスタムコールバックがあれば実行
+        if (onEndedCallbackRef.current) {
+          onEndedCallbackRef.current();
+        }
+      };
+
+      // エラーハンドリング
+      audioRef.current.onerror = (error) => {
+        console.error('音声再生エラー:', error);
+        setIsPlaying(false);
+      };
+    }
+
+    try {
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('音声再生に失敗しました:', error);
+      setIsPlaying(false);
+      throw error;
+    }
+  };
+
+  const setOnEndedCallback = (callback: () => void) => {
+    onEndedCallbackRef.current = callback;
+  };
+
   // クリーンアップ
   useEffect(() => {
     return () => {
@@ -135,7 +195,9 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     duration,
     handleFileChange,
     handlePlayClick,
+    playAudio,
     resetAudio,
     getAudioElement,
+    setOnEndedCallback,
   };
 };
