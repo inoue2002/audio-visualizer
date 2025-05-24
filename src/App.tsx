@@ -1,15 +1,17 @@
+import { useEffect, useRef } from 'react';
 import './App.css';
-import { useState, useRef, useEffect } from 'react';
+import { useCanvasRecording } from './hooks/useCanvasRecording';
 
 function App() {
-  const [isRecording, setIsRecording] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const { isRecording, startRecording, stopRecording } = useCanvasRecording(canvasRef, {
+    frameRate: 30,
+    fileName: 'canvas-recording',
+  });
 
   useEffect(() => {
     if (!canvasRef.current) return;
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -33,7 +35,7 @@ function App() {
     let animationFrameId: number;
     const animate = () => {
       const now = Date.now();
-      
+
       // 0.5秒ごとに色を変更
       if (now - lastColorChange >= 500) {
         currentColor = getRandomColor();
@@ -43,7 +45,7 @@ function App() {
       // キャンバスに描画
       ctx.fillStyle = currentColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -55,41 +57,11 @@ function App() {
   }, []);
 
   const handleRecordClick = async () => {
-    if (!canvasRef.current) return;
-
-    const stream = canvasRef.current.captureStream(30);
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm'
-    });
-
-    mediaRecorderRef.current = mediaRecorder;
-    chunksRef.current = [];
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        chunksRef.current.push(e.data);
-      }
-    };
-
-    mediaRecorder.start();
-    setIsRecording(true);
-  };
-
-  const handleStopClick = () => {
-    if (!mediaRecorderRef.current) return;
-
-    mediaRecorderRef.current.stop();
-    mediaRecorderRef.current.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `recording-${new Date().toISOString()}.webm`;
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    setIsRecording(false);
+    try {
+      await startRecording();
+    } catch (error) {
+      console.error('録画開始エラー:', error);
+    }
   };
 
   return (
@@ -98,7 +70,7 @@ function App() {
         {!isRecording ? (
           <button onClick={handleRecordClick}>録画開始</button>
         ) : (
-          <button onClick={handleStopClick}>録画停止</button>
+          <button onClick={stopRecording}>録画停止</button>
         )}
       </div>
       <canvas
