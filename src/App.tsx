@@ -7,6 +7,16 @@ import { useRealtimeWaveform } from './hooks/useRealtimeWaveform';
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const {
+    audioFile,
+    isPlaying,
+    handleFileChange,
+    handlePlayClick,
+    getAudioElement,
+    resetAudio,
+    playAudio,
+    setOnEndedCallback,
+  } = useAudioPlayer();
+  const {
     isRecording,
     startRecording,
     stopRecording,
@@ -18,17 +28,8 @@ function App() {
     frameRate: 30,
     fileName: 'canvas-recording',
     forceMP4: true,
+    audioFile: audioFile || undefined,
   });
-  const {
-    audioFile,
-    isPlaying,
-    handleFileChange,
-    handlePlayClick,
-    getAudioElement,
-    resetAudio,
-    playAudio,
-    setOnEndedCallback,
-  } = useAudioPlayer();
   const {
     frequencyData,
     isAnalyzing,
@@ -525,7 +526,10 @@ function App() {
             </div>
           </div>
         )}
-        <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>録画形式: {supportedFormat}</div>
+        <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+          録画形式: {supportedFormat}
+          {audioFile ? ' (音声付き)' : ' (映像のみ)'}
+        </div>
         <button
           onClick={() => setShowParameterPanel(!showParameterPanel)}
           style={{

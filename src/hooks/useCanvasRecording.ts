@@ -8,6 +8,7 @@ export interface UseCanvasRecordingOptions {
   mimeType?: string;
   fileName?: string;
   forceMP4?: boolean;
+  audioFile?: File;
 }
 
 export interface UseCanvasRecordingReturn {
@@ -24,7 +25,7 @@ export const useCanvasRecording = (
   canvasRef: RefObject<HTMLCanvasElement | null>,
   options: UseCanvasRecordingOptions = {}
 ): UseCanvasRecordingReturn => {
-  const { frameRate = 30, fileName = 'recording', forceMP4 = true } = options;
+  const { frameRate = 30, fileName = 'recording', forceMP4 = true, audioFile } = options;
 
   const [isRecording, setIsRecording] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -94,7 +95,7 @@ export const useCanvasRecording = (
     }
   };
 
-  // WebMをMP4に変換
+  // WebMをMP4に変換（音声合成対応）
   const convertToMP4 = async (webmBlob: Blob): Promise<Blob> => {
     safeSetState(setIsConverting, true);
     safeSetState(setConversionProgress, 0);
@@ -118,38 +119,93 @@ export const useCanvasRecording = (
     try {
       const ffmpeg = await initFFmpeg();
 
-      console.log(`📊 変換開始 - サイズ: ${(webmBlob.size / 1024 / 1024).toFixed(2)}MB`);
+      const hasAudio = audioFile && audioFile.size > 0;
+      console.log(
+        `📊 変換開始 - 映像: ${(webmBlob.size / 1024 / 1024).toFixed(2)}MB${
+          hasAudio ? `, 音声: ${(audioFile.size / 1024 / 1024).toFixed(2)}MB` : ' (音声なし)'
+        }`
+      );
 
       // 5%: ファイル読み込み開始
-      updateProgress(5, '入力ファイル読み込み中...');
+      updateProgress(5, hasAudio ? '映像・音声ファイル読み込み中...' : '映像ファイル読み込み中...');
 
+      // 映像ファイルを書き込み
       await ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
 
-      // 15%: ファイル読み込み完了、エンコード開始
-      updateProgress(15, 'MP4エンコード実行中...');
+      // 音声ファイルがある場合は書き込み
+      if (hasAudio) {
+        updateProgress(10, '音声ファイル読み込み中...');
 
-      // エンコード中の進行状況を緩やかに更新
-      progressInterval = setInterval(() => {
-        if (currentProgress < 85) {
-          const increment = Math.random() * 3 + 1; // 1-4%の増分
-          updateProgress(currentProgress + increment, 'MP4エンコード実行中...');
-        }
-      }, 1500); // 1.5秒間隔で更新
+        // 音声ファイル拡張子を取得
+        const audioExtension = audioFile.name.split('.').pop()?.toLowerCase() || 'mp3';
+        const audioFileName = `input.${audioExtension}`;
 
-      // MP4に変換（高品質設定）
-      await ffmpeg.exec([
-        '-i',
-        'input.webm',
-        '-c:v',
-        'libx264',
-        '-crf',
-        '23',
-        '-preset',
-        'medium',
-        '-movflags',
-        '+faststart',
-        'output.mp4',
-      ]);
+        await ffmpeg.writeFile(audioFileName, await fetchFile(audioFile));
+
+        // 15%: エンコード開始
+        updateProgress(15, '映像・音声合成中...');
+
+        // エンコード中の進行状況を緩やかに更新
+        progressInterval = setInterval(() => {
+          if (currentProgress < 80) {
+            const increment = Math.random() * 2 + 1; // 音声合成は少し時間がかかるので進行を緩やか
+            updateProgress(currentProgress + increment, '映像・音声合成中...');
+          }
+        }, 2000); // 2秒間隔
+
+        // 映像と音声を合成してMP4に変換
+        await ffmpeg.exec([
+          '-i',
+          'input.webm', // 映像入力
+          '-i',
+          audioFileName, // 音声入力
+          '-c:v',
+          'libx264', // 映像コーデック
+          '-c:a',
+          'aac', // 音声コーデック
+          '-crf',
+          '23', // 映像品質
+          '-preset',
+          'medium', // エンコード速度
+          '-map',
+          '0:v', // 映像ストリームをマップ
+          '-map',
+          '1:a', // 音声ストリームをマップ
+          '-shortest', // 短い方の長さに合わせる
+          '-movflags',
+          '+faststart', // ストリーミング最適化
+          'output.mp4',
+        ]);
+
+        // 音声ファイルをクリーンアップ
+        await ffmpeg.deleteFile(audioFileName);
+      } else {
+        // 15%: エンコード開始（映像のみ）
+        updateProgress(15, 'MP4エンコード実行中...');
+
+        // エンコード中の進行状況を更新
+        progressInterval = setInterval(() => {
+          if (currentProgress < 85) {
+            const increment = Math.random() * 3 + 1;
+            updateProgress(currentProgress + increment, 'MP4エンコード実行中...');
+          }
+        }, 1500);
+
+        // 映像のみでMP4に変換
+        await ffmpeg.exec([
+          '-i',
+          'input.webm',
+          '-c:v',
+          'libx264',
+          '-crf',
+          '23',
+          '-preset',
+          'medium',
+          '-movflags',
+          '+faststart',
+          'output.mp4',
+        ]);
+      }
 
       // インターバルを停止
       if (progressInterval) {
@@ -166,14 +222,14 @@ export const useCanvasRecording = (
       // 95%: ファイル読み取り完了、クリーンアップ中
       updateProgress(95, 'クリーンアップ中...');
 
-      console.log(`✅ 変換完了 - 出力: ${(outputSize / 1024 / 1024).toFixed(2)}MB`);
+      console.log(`✅ 変換完了 - 出力: ${(outputSize / 1024 / 1024).toFixed(2)}MB${hasAudio ? ' (音声付き)' : ''}`);
 
       // クリーンアップ
       await ffmpeg.deleteFile('input.webm');
       await ffmpeg.deleteFile('output.mp4');
 
       // 100%: 完了
-      updateProgress(100, '変換完了');
+      updateProgress(100, hasAudio ? '音声付きMP4変換完了' : 'MP4変換完了');
 
       return new Blob([data], { type: 'video/mp4' });
     } catch (error) {
