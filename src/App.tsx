@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import './App.css';
 import { ConversionProgress } from './components/ConversionProgress';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';

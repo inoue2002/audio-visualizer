@@ -1,10 +1,13 @@
-import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   base: '/audio-visualizer/',
-  plugins: [react()],
+  plugins: [
+    tailwindcss(),
+    react(),
+  ],
   server: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
@@ -14,4 +17,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
   },
-});
+})
