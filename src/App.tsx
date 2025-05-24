@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { AudioVisualizer } from 'react-audio-visualize';
 import './App.css';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useCanvasRecording } from './hooks/useCanvasRecording';
@@ -9,7 +10,7 @@ function App() {
     frameRate: 30,
     fileName: 'canvas-recording',
   });
-  const { audioFile, isPlaying, handleFileChange, handlePlayClick } = useAudioPlayer();
+  const { audioFile, audioBlob, isPlaying, currentTime, handleFileChange, handlePlayClick } = useAudioPlayer();
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -44,7 +45,7 @@ function App() {
         lastColorChange = now;
       }
 
-      // キャンバスに描画
+      // 背景を描画
       ctx.fillStyle = currentColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -86,13 +87,38 @@ function App() {
           <button onClick={stopRecording}>録画停止</button>
         )}
       </div>
-      <canvas
-        ref={canvasRef}
-        style={{
-          width: '100%',
-          aspectRatio: '16/9',
-        }}
-      />
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <canvas
+          ref={canvasRef}
+          style={{
+            width: '100%',
+            aspectRatio: '16/9',
+          }}
+        />
+        {audioBlob && isPlaying && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 10,
+            }}
+          >
+            <AudioVisualizer
+              blob={audioBlob}
+              width={500}
+              height={100}
+              barWidth={3}
+              gap={1}
+              barColor={'rgba(255, 255, 255, 0.5)'}
+              barPlayedColor={'#00ff88'}
+              currentTime={currentTime}
+              backgroundColor="transparent"
+            />
+          </div>
+        )}
+      </div>
     </>
   );
 }

@@ -2,15 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 
 export interface UseAudioPlayerReturn {
   audioFile: File | null;
+  audioBlob: Blob | null;
   isPlaying: boolean;
+  currentTime: number;
+  duration: number;
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handlePlayClick: () => void;
   resetAudio: () => void;
+  getAudioElement: () => HTMLAudioElement | null;
 }
 
 export const useAudioPlayer = (): UseAudioPlayerReturn => {
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
 
@@ -23,7 +30,10 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       }
 
       setAudioFile(file);
+      setAudioBlob(file); // FileはBlobを継承しているので直接設定可能
       setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
 
       if (audioRef.current) {
         audioRef.current.pause();
@@ -41,9 +51,24 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
       audioUrlRef.current = audioUrl;
       audioRef.current = new Audio(audioUrl);
 
+      // 音声のメタデータが読み込まれた時の処理
+      audioRef.current.onloadedmetadata = () => {
+        if (audioRef.current) {
+          setDuration(audioRef.current.duration);
+        }
+      };
+
+      // 再生時間の更新
+      audioRef.current.ontimeupdate = () => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+      };
+
       // 音声が終了した時の処理
       audioRef.current.onended = () => {
         setIsPlaying(false);
+        setCurrentTime(0);
       };
 
       // エラーハンドリング
@@ -77,7 +102,14 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     }
 
     setAudioFile(null);
+    setAudioBlob(null);
     setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  };
+
+  const getAudioElement = () => {
+    return audioRef.current;
   };
 
   // クリーンアップ
@@ -97,9 +129,13 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
 
   return {
     audioFile,
+    audioBlob,
     isPlaying,
+    currentTime,
+    duration,
     handleFileChange,
     handlePlayClick,
     resetAudio,
+    getAudioElement,
   };
 };
