@@ -53,6 +53,7 @@ function App() {
     heightRatio: 1.0, // 高さの係数
     colorMode: 'single' as 'rainbow' | 'single', // 色モード：虹色 or 単色
     singleColor: '#ffffff', // 単色の場合の色
+    waveformPosition: 'center' as 'upper' | 'center' | 'lower', // 波形の表示位置
   };
 
   // パラメータの型定義
@@ -236,6 +237,7 @@ function App() {
       heightRatio: number;
       colorMode: 'rainbow' | 'single';
       singleColor: string;
+      waveformPosition: 'upper' | 'center' | 'lower';
     }
   ) => {
     const waveformWidth = canvasWidth * 0.99;
@@ -243,8 +245,26 @@ function App() {
     const targetBars = params.targetBars;
 
     const startX = (canvasWidth - waveformWidth) / 2;
-    const startY = (canvasHeight - waveformHeight) / 2;
-    const centerY = startY + waveformHeight / 2;
+
+    // 波形位置に応じてstartYとcenterYを計算
+    let startY: number;
+    let centerY: number;
+
+    switch (params.waveformPosition) {
+      case 'upper':
+        startY = canvasHeight * 0.15; // 上部15%の位置
+        centerY = startY + waveformHeight / 2;
+        break;
+      case 'lower':
+        startY = canvasHeight * 0.85 - waveformHeight; // 下部15%の位置（波形の高さを考慮）
+        centerY = startY + waveformHeight / 2;
+        break;
+      case 'center':
+      default:
+        startY = (canvasHeight - waveformHeight) / 2;
+        centerY = startY + waveformHeight / 2;
+        break;
+    }
 
     // 中央線
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
@@ -813,6 +833,22 @@ function App() {
                 />
               </div>
             )}
+            <div>
+              <label>波形の表示位置</label>
+              <select
+                value={visualParams.waveformPosition}
+                onChange={(e) =>
+                  setVisualParams((prev) => ({
+                    ...prev,
+                    waveformPosition: e.target.value as 'upper' | 'center' | 'lower',
+                  }))
+                }
+              >
+                <option value="upper">上部</option>
+                <option value="center">中央</option>
+                <option value="lower">下部</option>
+              </select>
+            </div>
           </div>
         </div>
       )}
