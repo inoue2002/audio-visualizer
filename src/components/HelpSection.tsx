@@ -10,7 +10,6 @@ export const HelpSection = () => {
       </CardHeader>
       <CardContent>
         <Accordion type="multiple" className="w-full">
-          
           {/* 基本的な使い方 */}
           <AccordionItem value="basics">
             <AccordionTrigger className="text-left">
@@ -25,7 +24,8 @@ export const HelpSection = () => {
                   <h4 className="font-bold text-blue-800 mb-2">📱 簡単3ステップ</h4>
                   <ol className="list-decimal list-inside space-y-2 text-blue-700">
                     <li>
-                      <strong>音楽ファイルをアップロード</strong> - 「🎵 音楽ファイルを選択」ボタンでMP3、WAVなどをアップロード
+                      <strong>音楽ファイルをアップロード</strong> - 「🎵
+                      音楽ファイルを選択」ボタンでMP3、WAVなどをアップロード
                     </li>
                     <li>
                       <strong>お好みの設定に調整</strong> - ⚙️パラメーター設定で色、波形の形、位置などをカスタマイズ
@@ -35,10 +35,16 @@ export const HelpSection = () => {
                     </li>
                   </ol>
                 </div>
-                
+
                 <div className="space-y-2 text-gray-700">
-                  <p><strong className="text-green-600">✅ 自動完了:</strong> 音楽が終わると録画も自動停止し、MP4ファイルがダウンロードされます</p>
-                  <p><strong className="text-blue-600">🎨 リアルタイムプレビュー:</strong> 音楽なしでもパラメーターの効果を確認できます</p>
+                  <p>
+                    <strong className="text-green-600">✅ 自動完了:</strong>{' '}
+                    音楽が終わると録画も自動停止し、MP4ファイルがダウンロードされます
+                  </p>
+                  <p>
+                    <strong className="text-blue-600">🎨 リアルタイムプレビュー:</strong>{' '}
+                    音楽なしでもパラメーターの効果を確認できます
+                  </p>
                 </div>
               </div>
             </AccordionContent>
@@ -64,19 +70,37 @@ export const HelpSection = () => {
                 <div className="space-y-3">
                   <h5 className="font-semibold text-gray-800">🎯 活用例</h5>
                   <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-                    <li><strong>YouTube動画</strong> - 音楽紹介動画や解説動画の背景として</li>
-                    <li><strong>音楽PV</strong> - アーティストの楽曲プロモーションビデオに</li>
-                    <li><strong>ライブ配信</strong> - OBSなどの配信ソフトで背景として使用</li>
-                    <li><strong>プレゼンテーション</strong> - 音声付きプレゼンの視覚効果として</li>
-                    <li><strong>ポッドキャスト</strong> - 音声コンテンツの視覚化</li>
+                    <li>
+                      <strong>YouTube動画</strong> - 音楽紹介動画や解説動画の背景として
+                    </li>
+                    <li>
+                      <strong>音楽PV</strong> - アーティストの楽曲プロモーションビデオに
+                    </li>
+                    <li>
+                      <strong>ライブ配信</strong> - OBSなどの配信ソフトで背景として使用
+                    </li>
+                    <li>
+                      <strong>プレゼンテーション</strong> - 音声付きプレゼンの視覚効果として
+                    </li>
+                    <li>
+                      <strong>ポッドキャスト</strong> - 音声コンテンツの視覚化
+                    </li>
                   </ul>
 
                   <h5 className="font-semibold text-gray-800 mt-4">🛠️ 編集ソフトでの使い方</h5>
                   <ul className="list-disc list-inside space-y-1 text-gray-700 ml-4">
-                    <li><strong>Premiere Pro</strong>: Ultra Key エフェクトを使用</li>
-                    <li><strong>Final Cut Pro</strong>: キーヤー &gt; クロマキー</li>
-                    <li><strong>DaVinci Resolve</strong>: Color ページでクロマキー</li>
-                    <li><strong>OBS Studio</strong>: 色度キーフィルタを追加</li>
+                    <li>
+                      <strong>Premiere Pro</strong>: Ultra Key エフェクトを使用
+                    </li>
+                    <li>
+                      <strong>Final Cut Pro</strong>: キーヤー &gt; クロマキー
+                    </li>
+                    <li>
+                      <strong>DaVinci Resolve</strong>: Color ページでクロマキー
+                    </li>
+                    <li>
+                      <strong>OBS Studio</strong>: 色度キーフィルタを追加
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -97,18 +121,30 @@ export const HelpSection = () => {
                   <div className="bg-slate-50 p-3 rounded-lg">
                     <h5 className="font-semibold text-slate-800 mb-2">🎨 見た目の設定</h5>
                     <ul className="list-disc list-inside space-y-1 text-slate-700 text-xs">
-                      <li><strong>色モード</strong>: 🌈虹色 または 🎨単色</li>
-                      <li><strong>カラーピッカー</strong>: お好みの色を自由選択</li>
-                      <li><strong>表示位置</strong>: 上部・中央・下部</li>
+                      <li>
+                        <strong>色モード</strong>: 🌈虹色 または 🎨単色
+                      </li>
+                      <li>
+                        <strong>カラーピッカー</strong>: お好みの色を自由選択
+                      </li>
+                      <li>
+                        <strong>表示位置</strong>: 上部・中央・下部
+                      </li>
                     </ul>
                   </div>
-                  
+
                   <div className="bg-slate-50 p-3 rounded-lg">
                     <h5 className="font-semibold text-slate-800 mb-2">📊 波形パラメーター</h5>
                     <ul className="list-disc list-inside space-y-1 text-slate-700 text-xs">
-                      <li><strong>バーの数</strong>: 50〜500本で調整</li>
-                      <li><strong>高さ・間隔</strong>: 見やすさに合わせて調整</li>
-                      <li><strong>反応感度</strong>: 動きの閾値で調整</li>
+                      <li>
+                        <strong>バーの数</strong>: 50〜500本で調整
+                      </li>
+                      <li>
+                        <strong>高さ・間隔</strong>: 見やすさに合わせて調整
+                      </li>
+                      <li>
+                        <strong>反応感度</strong>: 動きの閾値で調整
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -143,7 +179,7 @@ export const HelpSection = () => {
                       <li>✅ FLAC (.flac)</li>
                     </ul>
                   </div>
-                  
+
                   <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                     <h5 className="font-semibold text-blue-800 mb-2">🎬 出力仕様</h5>
                     <ul className="list-disc list-inside space-y-1 text-blue-700 text-xs">
@@ -178,9 +214,15 @@ export const HelpSection = () => {
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <h5 className="font-semibold text-green-800 mb-2">🛡️ 完全ローカル処理</h5>
                   <ul className="list-disc list-inside space-y-1 text-green-700">
-                    <li><strong>音声ファイル</strong>: ブラウザ内でのみ処理、サーバー送信なし</li>
-                    <li><strong>録画データ</strong>: ローカルで生成、直接ダウンロード</li>
-                    <li><strong>設定情報</strong>: ローカルストレージのみに保存</li>
+                    <li>
+                      <strong>音声ファイル</strong>: ブラウザ内でのみ処理、サーバー送信なし
+                    </li>
+                    <li>
+                      <strong>録画データ</strong>: ローカルで生成、直接ダウンロード
+                    </li>
+                    <li>
+                      <strong>設定情報</strong>: ローカルストレージのみに保存
+                    </li>
                   </ul>
                 </div>
 
@@ -202,7 +244,16 @@ export const HelpSection = () => {
 
                 <Alert className="bg-slate-50 border-slate-200">
                   <AlertDescription className="text-slate-700">
-                    📄 詳細は <a href="https://github.com/inoue2002/audio-visualizer/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">プライバシーポリシー</a> をご確認ください
+                    📄 詳細は{' '}
+                    <a
+                      href="https://github.com/inoue2002/audio-visualizer/blob/main/PRIVACY.md"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline font-medium"
+                    >
+                      プライバシーポリシー
+                    </a>{' '}
+                    をご確認ください
                   </AlertDescription>
                 </Alert>
               </div>
@@ -223,10 +274,18 @@ export const HelpSection = () => {
                   <div className="bg-red-50 p-3 rounded-lg border border-red-200">
                     <h5 className="font-semibold text-red-800 mb-2">🚨 よくある問題</h5>
                     <ul className="list-disc list-inside space-y-1 text-red-700 text-xs">
-                      <li><strong>音が出ない</strong> → ブラウザの音量設定、ミュート解除を確認</li>
-                      <li><strong>再生エラー</strong> → 「🔄 オーディオリセット」ボタンで再試行</li>
-                      <li><strong>録画できない</strong> → ブラウザを最新版に更新</li>
-                      <li><strong>変換に時間がかかる</strong> → 初回はFFmpeg.wasmのダウンロードが必要</li>
+                      <li>
+                        <strong>音が出ない</strong> → ブラウザの音量設定、ミュート解除を確認
+                      </li>
+                      <li>
+                        <strong>再生エラー</strong> → 「🔄 オーディオリセット」ボタンで再試行
+                      </li>
+                      <li>
+                        <strong>録画できない</strong> → ブラウザを最新版に更新
+                      </li>
+                      <li>
+                        <strong>変換に時間がかかる</strong> → 初回はFFmpeg.wasmのダウンロードが必要
+                      </li>
                     </ul>
                   </div>
 
@@ -242,16 +301,21 @@ export const HelpSection = () => {
 
                 <Alert className="bg-gray-50 border-gray-200">
                   <AlertDescription className="text-gray-700">
-                    🆘 <strong>問題が解決しない場合:</strong> 
-                    <a href="https://github.com/inoue2002/audio-visualizer/issues" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium ml-1">
+                    🆘 <strong>問題が解決しない場合:</strong>
+                    <a
+                      href="https://github.com/inoue2002/audio-visualizer/issues"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline font-medium ml-1"
+                    >
                       GitHub Issues
-                    </a> でお気軽にご報告ください
+                    </a>{' '}
+                    でお気軽にご報告ください
                   </AlertDescription>
                 </Alert>
               </div>
             </AccordionContent>
           </AccordionItem>
-
         </Accordion>
       </CardContent>
     </Card>
