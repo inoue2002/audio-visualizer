@@ -1,54 +1,136 @@
-# React + TypeScript + Vite
+# 🎵 Audio Visualizer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+リアルタイム音声分析による高度なオーディオビジュアライザー
 
-Currently, two official plugins are available:
+## ✨ 機能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🎶 **リアルタイム音声解析**: Web Audio APIを使用した高精度な周波数分析
+- 🎨 **カスタマイズ可能な視覚化**: 波形の色、サイズ、エフェクトを自由に調整
+- 📹 **動画録画**: FFmpegを使用してビジュアライザーの動画を生成・ダウンロード
+- 📱 **レスポンシブデザイン**: デスクトップ・モバイル両対応のモダンUI
+- ⚡ **リアルタイムプレビュー**: パラメータ変更時の即座な視覚フィードバック
 
-## Expanding the ESLint configuration
+## 🚀 クイックスタート
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 必要環境
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+- Node.js 18以上
+- npm または yarn
+
+### インストール・起動
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/inoue2002/audio-visualizer.git
+cd audio-visualizer
+
+# 依存関係をインストール
+npm install
+
+# 開発サーバーを起動
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+ブラウザで `http://localhost:5173` にアクセスしてください。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🎯 使い方
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+1. **音楽ファイルを選択**: 「音楽ファイルを選択」ボタンから任意のオーディオファイルをアップロード
+2. **パラメーターを調整**: 「パラメーター設定」で波形の見た目をカスタマイズ
+3. **プレビュー**: 再生ボタンでリアルタイムビジュアライザーをプレビュー
+4. **録画**: 「再生&録画開始」で音楽と同期したビジュアライザー動画を生成
+
+### 📹 録画機能
+
+- **対応形式**: WebM（ブラウザ対応に応じてMP4への変換も可能）
+- **解像度**: 1280×720 (HD)
+- **フレームレート**: 30 FPS
+- **音声**: 元のオーディオファイルと同期
+
+### ⚙️ カスタマイズ可能なパラメーター
+
+- **色設定**: メインカラー、グラデーション、背景色
+- **波形調整**: 高さ、幅、スムージング
+- **エフェクト**: グロー効果、透明度、アニメーション
+- **レスポンシブ設定**: 周波数感度、表示範囲
+
+## 🛠️ 技術スタック
+
+### フロントエンド
+- **React 18** - UIライブラリ
+- **TypeScript** - 型安全性
+- **Vite** - 高速ビルドツール
+- **Tailwind CSS** - ユーティリティファーストCSS
+
+### UI コンポーネント
+- **Radix UI** - アクセシブルなプリミティブ
+- **Lucide React** - アイコンライブラリ
+- **class-variance-authority** - 条件付きスタイリング
+
+### 音声・動画処理
+- **Web Audio API** - リアルタイム音声解析
+- **Canvas API** - 高性能ビジュアライゼーション
+- **FFmpeg.wasm** - ブラウザ内動画変換
+- **MediaRecorder API** - 画面録画
+
+## 📁 プロジェクト構造
+
 ```
+src/
+├── components/          # UIコンポーネント
+│   ├── ui/             # 再利用可能なUIプリミティブ
+│   ├── Header.tsx      # ヘッダーコンポーネント
+│   ├── Footer.tsx      # フッターコンポーネント
+│   └── ...
+├── hooks/              # カスタムフック
+│   ├── useAudioPlayer.ts      # 音声再生管理
+│   ├── useRealtimeWaveform.ts # リアルタイム解析
+│   ├── useCanvasRecording.ts  # 動画録画
+│   └── ...
+├── utils/              # ユーティリティ関数
+│   ├── visualizer.ts   # ビジュアライザー描画ロジック
+│   ├── analytics.ts    # アナリティクス
+│   └── ...
+└── types/              # TypeScript型定義
+    └── visualizer.ts
+```
+
+## 🔧 開発
+
+### 利用可能なスクリプト
+
+```bash
+# 開発サーバー起動
+npm run dev
+
+# 本番ビルド
+npm run build
+
+# コードフォーマット・リント
+npm run lint
+
+# プレビュー（ビルド後）
+npm run preview
+```
+
+### コントリビューション
+
+1. このリポジトリをフォーク
+2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add amazing feature'`)
+4. ブランチをプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを開く
+
+## 📄 ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。
+
+## 🙏 謝辞
+
+- [FFmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) - ブラウザ内動画処理
+- [Radix UI](https://www.radix-ui.com/) - アクセシブルなUIコンポーネント
+- [Tailwind CSS](https://tailwindcss.com/) - ユーティリティファーストCSS
+
+---
+
+**作者**: [inoue2002](https://github.com/inoue2002)
